@@ -102,3 +102,5 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+Pathfinder-677fd1d11a8b.json
