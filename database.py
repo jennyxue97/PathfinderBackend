@@ -1,18 +1,92 @@
 from google.cloud import bigquery
+from google.oauth2.service_account import Credentials
 import pandas as pd
+import numpy as np
+import pandas_gbq as pdg
 
-def post_itinerary(itinerary):
-    client = bigquery.Client.from_service_account_json("/Users/jennyxue/Desktop/PathfinderBackend/Pathfinder-677fd1d11a8b.json")
-    itinerary_id = itinerary["itinerary_id"]
-    itinerary_name = itinerary["itinerary_name"]
-    user_id = itinerary["user_id"]
-    user_name = itinerary["user_name"]
+# def post_itinerary(user_id, user_name, itinerary_name, itinerary_id, itinerary):
+#     itinerary_id = itinerary_name.lower()
+#     client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
+#     for cluster_id, cluster in enumerate(itinerary["clusters"]):
+#         for query in cluster:
+#             businesses = cluster[query]
+#             for order, business in enumerate(businesses):
+#                 business_name = business["name"]
+#                 url = business["url"]
+#                 image_url = business["image_url"]
+#                 review_count = business["review_count"]
+#                 categories = [None, None, None]
+#                 for idx, category in enumerate(business["categories"]):
+#                     categories[idx] = category
+#                 rating = business["rating"]
+#                 location = business["location"]
+#                 phone = business["phone"]
+#                 coordinates = business["coordinates"]
+                
+#                 sql_query = """
+#                     INSERT INTO
+#                         `sherpa-238315.Sherpa.Itineraries` (
+#                             user_id,
+#                             user_name,
+#                             business_name,
+#                             url,
+#                             image_url,
+#                             review_count,
+#                             category_1,
+#                             category_2,
+#                             category_3,
+#                             rating,
+#                             location,
+#                             phone,
+#                             itinerary_id,
+#                             itinerary_name,
+#                             cluster_id,
+#                             query,
+#                             coordinates,
+#                             `order`
+#                         )
+#                     VALUES ("%s",  
+#                             "%s",
+#                             "%s",
+#                             "%s",
+#                             "%s",
+#                             %s,
+#                             "%s",
+#                             "%s",
+#                             "%s",
+#                             %s,
+#                             "%s",
+#                             "%s",
+#                             "%s",
+#                             "%s",
+#                             %s,
+#                             "%s",
+#                             "%s",
+#                             %s)
+#                     """%(user_id, user_name, business_name, url, image_url, review_count, 
+#                         categories[0], categories[1], categories[2], rating, location, phone, 
+#                         itinerary_id, itinerary_name, cluster_id, query, coordinates, order)
+
+#                 query_job = client.query(sql_query)
+#                 results = query_job.result()
+#     return {"done": True}
+
+def post_itinerary(user_id, user_name, itinerary_name, itinerary_id, itinerary):
+    columns = ["user_id", "user_name", "business_name", "url", "image_url", "review_count", 
+                               "category_1", "category_2", "category_3", "rating", "location", "phone",
+                               "itinerary_id", "itinerary_name", "cluster_id", "query",
+                               "coordinates", "sort_order"]
+    df = []
+    
+    itinerary_id = itinerary_name.lower()
+    itinerary_name = itinerary_name
+    # client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     for cluster_id, cluster in enumerate(itinerary["clusters"]):
         for query in cluster:
             businesses = cluster[query]
             for order, business in enumerate(businesses):
-                business_name = business["name"]
-                url = business["url"]
+                business_name =  business["name"]
+                url = business["url"] 
                 image_url = business["image_url"]
                 review_count = business["review_count"]
                 categories = [None, None, None]
@@ -21,62 +95,31 @@ def post_itinerary(itinerary):
                 rating = business["rating"]
                 location = business["location"]
                 phone = business["phone"]
-                coordinates = business["coordinates"]
-                
-                sql_query = """
-                    INSERT INTO
-                        `pathfinder-1555643805221.Pathfinder.Itineraries` (
-                            user_id,
-                            user_name,
-                            business_name,
-                            url,
-                            image_url,
-                            review_count,
-                            category_1,
-                            category_2,
-                            category_3,
-                            rating,
-                            location,
-                            phone,
-                            itinerary_id,
-                            itinerary_name,
-                            cluster_id,
-                            query,
-                            coordinates,
-                            `order`
-                        )
-                    VALUES ("%s",  
-                            "%s",
-                            "%s",
-                            "%s",
-                            "%s",
-                            %s,
-                            "%s",
-                            "%s",
-                            "%s",
-                            %s,
-                            "%s",
-                            "%s",
-                            "%s",
-                            "%s",
-                            %s,
-                            "%s",
-                            "%s",
-                            %s)
-                    """%(user_id, user_name, business_name, url, image_url, review_count, 
+                coordinates = business["coordinates"]  
+                row = [user_id, user_name, business_name, url, image_url, review_count, 
                         categories[0], categories[1], categories[2], rating, location, phone, 
-                        itinerary_id, itinerary_name, cluster_id, query, coordinates, order)
-                # print(sql_query)
-                query_job = client.query(sql_query)
-                results = query_job.result()
+                        itinerary_id, itinerary_name, cluster_id, query, coordinates, order]
+                df.append(row)
 
-    return results
+    dtypes = ["str", "str", "str", "str", "str", "int", "str", "str", "str",
+              "float", "str", "str", "str", "str", "int", "str", "str", "int"]
+    schemas = ["STRING", "STRING", "STRING", "STRING", "STRING", "INTEGER", "STRING", "STRING", "STRING",
+               "FLOAT", "STRING", "STRING", "STRING", "STRING", "INTEGER", "STRING", "STRING", "INTEGER"]
+
+    df = pd.DataFrame(df, columns=columns)
+    table_schemas = []
+    for idx, schema in enumerate(schemas):
+        table_schemas.append({"name": columns[idx], "type": schema})
+        df[columns[idx]] = df[columns[idx]].astype(dtypes[idx])
+    credentials = Credentials.from_service_account_file("Sherpa-3244e874fcf9.json")
+    pdg.to_gbq(df, "Sherpa.Itineraries", project_id="sherpa-238315", chunksize=None, if_exists="append", credentials=credentials, table_schema=table_schemas)
+    return {"done": True}
 
 def delete_itinerary(user_id, itinerary_id):
-    client = bigquery.Client.from_service_account_json("/Users/jennyxue/Desktop/PathfinderBackend/Pathfinder-677fd1d11a8b.json")
+    client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     query = """
     DELETE FROM
-        `pathfinder-1555643805221.Pathfinder.Itineraries`
+        `sherpa-238315.Sherpa.Itineraries`
     WHERE
         itinerary_id="%s" AND 
         user_id="%s"
@@ -85,18 +128,18 @@ def delete_itinerary(user_id, itinerary_id):
     results = query_job.result()
     return results
 
-def get_itinerary(itinerary_id, user_id):
-    client = bigquery.Client.from_service_account_json("/Users/jennyxue/Desktop/PathfinderBackend/Pathfinder-677fd1d11a8b.json")
+def get_itinerary(user_id, itinerary_id):
+    client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     query = """
     SELECT 
         *
     FROM
-        `pathfinder-1555643805221.Pathfinder.Itineraries`
+        `sherpa-238315.Sherpa.Itineraries`
     WHERE
         itinerary_id='%s' AND
         user_id='%s'
     ORDER BY
-        `order`
+        sort_order
     """%(itinerary_id, user_id)
     query_job = client.query(query)
     results = query_job.result()
@@ -104,6 +147,8 @@ def get_itinerary(itinerary_id, user_id):
     parsed_results = {"clusters": []}
     clusters = {}
     df = results.to_dataframe()
+
+
     for idx, row in df.iterrows():
         results_keys = ["itinerary_id", "itinerary_name", "user_name", "user_id"]
         for results_key in results_keys:
@@ -141,14 +186,15 @@ def get_itinerary(itinerary_id, user_id):
 
     return parsed_results
 
-def post_itinerary_in_user(user_id, user_name, itinerary_id, itinerary_name):
+def post_itinerary_in_user(user_id, user_name, itinerary_name):
+    itinerary_id = itinerary_name.lower()
     if is_duplicate_itinerary(user_id, itinerary_id, itinerary_name):
-        return False
+        return {"done": False, "itinerary_id": itinerary_id, "itinerary_name": itinerary_name}
     
-    client = bigquery.Client.from_service_account_json("/Users/jennyxue/Desktop/PathfinderBackend/Pathfinder-677fd1d11a8b.json")
+    client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     query = """
     INSERT INTO
-        `pathfinder-1555643805221.Pathfinder.Users` (user_id,
+        `sherpa-238315.Sherpa.Users` (user_id,
             user_name,
             itinerary_id,
             itinerary_name)
@@ -161,16 +207,16 @@ def post_itinerary_in_user(user_id, user_name, itinerary_id, itinerary_name):
     """ %(user_id, user_name, itinerary_id, itinerary_name)
     query_job = client.query(query)
     results = query_job.result()
-    return True
+    return {"done": True, "itinerary_id": itinerary_id, "itinerary_name": itinerary_name}
     
 
 def is_duplicate_itinerary(user_id, itinerary_id, itinerary_name):
-    client = bigquery.Client.from_service_account_json("/Users/jennyxue/Desktop/PathfinderBackend/Pathfinder-677fd1d11a8b.json")
+    client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     query = """
     SELECT 
         *
     FROM
-        `pathfinder-1555643805221.Pathfinder.Users`
+        `sherpa-238315.Sherpa.Users`
     WHERE
         user_id="%s" AND 
         (
@@ -181,17 +227,17 @@ def is_duplicate_itinerary(user_id, itinerary_id, itinerary_name):
     query_job = client.query(query)
     results = query_job.result()
     df = results.to_dataframe()
-    if len(df) > 0:
-        return True
-    return False
+    if df.shape[0] == 0:
+        return False
+    return True
     
 def get_itineraries_from_user(user_id):
-    client = bigquery.Client.from_service_account_json("/Users/jennyxue/Desktop/PathfinderBackend/Pathfinder-677fd1d11a8b.json")
+    client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     query = """
     SELECT 
         *
     FROM
-        `pathfinder-1555643805221.Pathfinder.Users`
+        `sherpa-238315.Sherpa.Users`
     WHERE
         user_id="%s"
     """ %(user_id)
@@ -210,15 +256,15 @@ def get_itineraries_from_user(user_id):
     return users
 
 def delete_itinerary_from_user(user_id, itinerary_id):
-    delete_itinerary(itinerary_id, user_id)
-    client = bigquery.Client.from_service_account_json("/Users/jennyxue/Desktop/PathfinderBackend/Pathfinder-677fd1d11a8b.json")
+    delete_itinerary(user_id, itinerary_id)
+    client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     query = """
     DELETE FROM
-        `pathfinder-1555643805221.Pathfinder.Users`
+        `sherpa-238315.Sherpa.Users`
     WHERE
         itinerary_id="%s" AND 
         user_id="%s"
     """ %(itinerary_id, user_id)
     query_job = client.query(query)
     results = query_job.result()
-    return results
+    return {"done": True}
