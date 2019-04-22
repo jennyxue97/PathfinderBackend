@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from yelpapi import YelpAPI
 import os
 from sklearn.cluster import KMeans

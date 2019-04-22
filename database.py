@@ -4,73 +4,6 @@ import pandas as pd
 import numpy as np
 import pandas_gbq as pdg
 
-# def post_itinerary(user_id, user_name, itinerary_name, itinerary_id, itinerary):
-#     itinerary_id = itinerary_name.lower()
-#     client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
-#     for cluster_id, cluster in enumerate(itinerary["clusters"]):
-#         for query in cluster:
-#             businesses = cluster[query]
-#             for order, business in enumerate(businesses):
-#                 business_name = business["name"]
-#                 url = business["url"]
-#                 image_url = business["image_url"]
-#                 review_count = business["review_count"]
-#                 categories = [None, None, None]
-#                 for idx, category in enumerate(business["categories"]):
-#                     categories[idx] = category
-#                 rating = business["rating"]
-#                 location = business["location"]
-#                 phone = business["phone"]
-#                 coordinates = business["coordinates"]
-                
-#                 sql_query = """
-#                     INSERT INTO
-#                         `sherpa-238315.Sherpa.Itineraries` (
-#                             user_id,
-#                             user_name,
-#                             business_name,
-#                             url,
-#                             image_url,
-#                             review_count,
-#                             category_1,
-#                             category_2,
-#                             category_3,
-#                             rating,
-#                             location,
-#                             phone,
-#                             itinerary_id,
-#                             itinerary_name,
-#                             cluster_id,
-#                             query,
-#                             coordinates,
-#                             `order`
-#                         )
-#                     VALUES ("%s",  
-#                             "%s",
-#                             "%s",
-#                             "%s",
-#                             "%s",
-#                             %s,
-#                             "%s",
-#                             "%s",
-#                             "%s",
-#                             %s,
-#                             "%s",
-#                             "%s",
-#                             "%s",
-#                             "%s",
-#                             %s,
-#                             "%s",
-#                             "%s",
-#                             %s)
-#                     """%(user_id, user_name, business_name, url, image_url, review_count, 
-#                         categories[0], categories[1], categories[2], rating, location, phone, 
-#                         itinerary_id, itinerary_name, cluster_id, query, coordinates, order)
-
-#                 query_job = client.query(sql_query)
-#                 results = query_job.result()
-#     return {"done": True}
-
 def post_itinerary(user_id, user_name, itinerary_name, itinerary_id, itinerary):
     columns = ["user_id", "user_name", "business_name", "url", "image_url", "review_count", 
                                "category_1", "category_2", "category_3", "rating", "location", "phone",
@@ -78,7 +11,7 @@ def post_itinerary(user_id, user_name, itinerary_name, itinerary_id, itinerary):
                                "coordinates", "sort_order"]
     df = []
     
-    itinerary_id = itinerary_name.lower()
+    itinerary_id = itinerary_name
     itinerary_name = itinerary_name
     # client = bigquery.Client.from_service_account_json("Sherpa-3244e874fcf9.json")
     for cluster_id, cluster in enumerate(itinerary["clusters"]):
@@ -187,7 +120,7 @@ def get_itinerary(user_id, itinerary_id):
     return parsed_results
 
 def post_itinerary_in_user(user_id, user_name, itinerary_name):
-    itinerary_id = itinerary_name.lower()
+    itinerary_id = itinerary_name
     if is_duplicate_itinerary(user_id, itinerary_id, itinerary_name):
         return {"done": False, "itinerary_id": itinerary_id, "itinerary_name": itinerary_name}
     
