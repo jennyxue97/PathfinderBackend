@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yelp, database
 import json
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -46,6 +47,10 @@ def route_delete_itinerary_from_user():
     itinerary_id = request.form["itinerary_id"]
     user_id = request.form["user_id"]
     return jsonify(database.delete_itinerary_from_user(user_id, itinerary_id))
+
+@app.route("/get_google_api_code", methods=["GET"])
+def route_get_google_api_code():
+    return jsonify({"google_api_code": os.environ["GOOGLE_API_CODE"]})
 
 
 if __name__ == "__main__":
